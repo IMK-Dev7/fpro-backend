@@ -18,14 +18,21 @@ RUN mvn clean package -DskipTests
 # ----------------------------
 FROM eclipse-temurin:21-jre-alpine
 
+# Installation de curl pour les health checks
+RUN apk add --no-cache curl
+
 # Dossier de travail dans le container
 WORKDIR /app
 
 # Copier le JAR construit depuis l'image précédente
 COPY --from=build /app/target/facturation-app-0.0.1-SNAPSHOT.jar app.jar
 
-# Exposer le port que Spring Boot utilisera
-EXPOSE 8080
+# Exposer le port 9099
+EXPOSE 9099
+
+# Variables d'environnement pour Render
+ENV PORT=8080
+ENV JAVA_OPTS="-Xmx256m -Xms128m"
 
 # Commande pour démarrer l'application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Dserver.port=$PORT -jar app.jar"]
