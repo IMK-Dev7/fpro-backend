@@ -15,7 +15,7 @@ public class CorsConfig {
 
         // Autoriser votre frontend React (ajustez selon votre environnement)
         config.addAllowedOrigin("http://localhost:5173"); // Développement local
-        config.addAllowedOrigin("https://votre-domaine.com"); // Production
+        config.addAllowedOrigin("https://md-best-quality.vercel.app"); // Production
 
         // Autoriser les headers nécessaires
         config.addAllowedHeader("*");
