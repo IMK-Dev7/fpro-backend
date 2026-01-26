@@ -1,6 +1,7 @@
 package com.facturation.controller;
 
 import com.facturation.dto.*;
+import com.facturation.model.StatutPaiement;
 import com.facturation.service.FactureService;
 import com.facturation.service.PdfService;
 import jakarta.validation.Valid;
@@ -21,6 +22,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/factures")
+@CrossOrigin(origins = "*")
 public class FactureController {
 
     @Autowired
@@ -28,10 +30,6 @@ public class FactureController {
 
     @Autowired
     private PdfService pdfService;
-
-    // ==============================
-    // ENDPOINTS EXISTANTS
-    // ==============================
 
     @PostMapping
     public ResponseEntity<FactureResponseDTO> creerFacture(@Valid @RequestBody FactureRequestDTO requestDTO) {
@@ -133,12 +131,6 @@ public class FactureController {
         return ResponseEntity.ok(stats);
     }
 
-    // ==============================
-    // NOUVEAUX ENDPOINTS PDF
-    // ==============================
-    /**
-     * Endpoint pour prévisualiser une facture (retourne les données JSON)
-     */
     @GetMapping("/{id}/preview")
     public ResponseEntity<FactureResponseDTO> previewFacture(@PathVariable Long id) {
         try {
@@ -149,9 +141,6 @@ public class FactureController {
         }
     }
 
-    /**
-     * Endpoint pour télécharger le PDF d'une facture
-     */
     @GetMapping(value = "/{id}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
     public ResponseEntity<byte[]> downloadFacturePdf(@PathVariable Long id) {
         try {
@@ -176,9 +165,6 @@ public class FactureController {
         }
     }
 
-    /**
-     * Endpoint pour visualiser le PDF directement dans le navigateur
-     */
     @GetMapping(value = "/{id}/view", produces = MediaType.APPLICATION_PDF_VALUE)
     public ResponseEntity<byte[]> viewFacturePdf(@PathVariable Long id) {
         try {
@@ -206,5 +192,58 @@ public class FactureController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(("Erreur lors de la génération du PDF: " + e.getMessage()).getBytes());
         }
+    }
+
+    // ==============================
+    // NOUVELLES FONCTIONNALITÉS DE PAIEMENT
+    // ==============================
+
+    @GetMapping("/by-statut")
+    public ResponseEntity<FacturePageDTO> getFacturesByStatut(
+            @RequestParam StatutPaiement statut,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "dateFacturation") String sortBy,
+            @RequestParam(defaultValue = "desc") String direction) {
+
+        Sort sort = direction.equalsIgnoreCase("desc")
+                ? Sort.by(sortBy).descending()
+                : Sort.by(sortBy).ascending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<FactureResponseDTO> facturePage = factureService.getFacturesByStatut(statut, pageable);
+
+        FacturePageDTO response = new FacturePageDTO(facturePage);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/reste-a-payer")
+    public ResponseEntity<List<FactureResponseDTO>> getFacturesAvecResteAPayer() {
+        List<FactureResponseDTO> factures = factureService.getFacturesAvecResteAPayer();
+        return ResponseEntity.ok(factures);
+    }
+
+    @GetMapping("/paginated/reste-a-payer")
+    public ResponseEntity<FacturePageDTO> getFacturesAvecResteAPayerPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "resteAPayer") String sortBy,
+            @RequestParam(defaultValue = "desc") String direction) {
+
+        Sort sort = direction.equalsIgnoreCase("desc")
+                ? Sort.by(sortBy).descending()
+                : Sort.by(sortBy).ascending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<FactureResponseDTO> facturePage = factureService.getFacturesAvecResteAPayer(pageable);
+
+        FacturePageDTO response = new FacturePageDTO(facturePage);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/stats-paiements")
+    public ResponseEntity<Map<String, Object>> getStatsPaiements() {
+        Map<String, Object> stats = factureService.getStatsPaiements();
+        return ResponseEntity.ok(stats);
     }
 }
